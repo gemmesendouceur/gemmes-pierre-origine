@@ -82,10 +82,14 @@ export default async (req: Request, context: Context) => {
 
   try {
     const body = await req.json();
-    const { prenoms, nomNaissance, dateNaissance, courriel } = body;
+    const { prenoms, nomNaissance, dateNaissance, prenomContact, nomContact, courriel, consentement } = body;
 
-    if (!prenoms || !nomNaissance || !dateNaissance || !courriel) {
+    if (!prenoms || !nomNaissance || !dateNaissance || !prenomContact || !nomContact || !courriel) {
       return new Response(JSON.stringify({ error: "Champs manquants" }), { status: 400 });
+    }
+
+    if (!consentement) {
+      return new Response(JSON.stringify({ error: "Le consentement est requis" }), { status: 400 });
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -93,6 +97,7 @@ export default async (req: Request, context: Context) => {
       return new Response(JSON.stringify({ error: "Courriel invalide" }), { status: 400 });
     }
 
+    // Le nom de naissance et la date ne servent qu'au calcul, en mémoire, jamais transmis ni conservés.
     const stoneId = calculatePierreOrigine(prenoms, nomNaissance);
     const stone = STONES.find((s) => s.id === stoneId) || STONES[0];
 
@@ -101,16 +106,14 @@ export default async (req: Request, context: Context) => {
       return new Response(JSON.stringify({ error: "Configuration serveur manquante" }), { status: 500 });
     }
 
-    const firstPrenom = prenoms.trim().split(/\s+/)[0];
-
     const contactRes = await fetch("https://api.brevo.com/v3/contacts", {
       method: "POST",
       headers: { "Content-Type": "application/json", "api-key": apiKey },
       body: JSON.stringify({
         email: courriel,
         attributes: {
-          PRENOM: firstPrenom,
-          NOM: nomNaissance,
+          PRENOM: prenomContact,
+          NOM: nomContact,
           PIERRE: stone.name,
           PIERRE_DESC: stone.desc,
         },
@@ -131,10 +134,9 @@ export default async (req: Request, context: Context) => {
       body: JSON.stringify({
         sender: SENDER,
         to: [{ email: NOTIFY_EMAIL }],
-        subject: `Nouveau lead ADN Minéral : ${firstPrenom} ${nomNaissance}`,
+        subject: `Nouveau lead ADN Minéral : ${prenomContact} ${nomContact}`,
         htmlContent: `
-          <p><strong>Nom complet :</strong> ${prenoms} ${nomNaissance}</p>
-          <p><strong>Date de naissance :</strong> ${dateNaissance}</p>
+          <p><strong>Nom :</strong> ${prenomContact} ${nomContact}</p>
           <p><strong>Courriel :</strong> ${courriel}</p>
           <p><strong>Pierre calculée :</strong> ${stone.name}</p>
         `,
