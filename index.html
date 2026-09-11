@@ -171,6 +171,9 @@
     outline: none;
     border-color: #992174;
   }
+  input.auto-filled {
+    color: #999999;
+  }
 
   .btn-submit {
     width: 100%;
@@ -288,7 +291,7 @@
       <p class="bloc-note">Ces informations sont conservées pour te faire parvenir ton résultat et assurer le suivi. Elles sont distinctes de ton nom de naissance ci-dessus.</p>
 
       <label for="prenomContact">Prénom</label>
-      <input type="text" id="prenomContact" name="prenomContact" required>
+      <input type="text" id="prenomContact" name="prenomContact" class="auto-filled" required>
 
       <label for="courriel">Courriel</label>
       <input type="email" id="courriel" name="courriel" required>
@@ -332,6 +335,22 @@
 
 <script>
   const form = document.getElementById('pierre-form');
+  const prenomsInput = document.getElementById('prenoms');
+  const prenomContactInput = document.getElementById('prenomContact');
+
+  prenomsInput.addEventListener('input', () => {
+    if (!prenomContactInput.dataset.editedManually) {
+      const firstPrenom = prenomsInput.value.trim().split(/\s+/)[0] || '';
+      prenomContactInput.value = firstPrenom;
+      prenomContactInput.classList.add('auto-filled');
+    }
+  });
+
+  prenomContactInput.addEventListener('input', () => {
+    prenomContactInput.dataset.editedManually = 'true';
+    prenomContactInput.classList.remove('auto-filled');
+  });
+
   const messageEl = document.getElementById('message');
   const submitBtn = document.getElementById('submit-btn');
 
