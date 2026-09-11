@@ -37,6 +37,7 @@ const STONES = [
 ];
 
 const BREVO_LIST_ID = 3;
+const BREVO_TEMPLATE_ID = 1; // ADN Minéral - 1. Révélation pierre d'origine
 const NOTIFY_EMAIL = "gemmesendouceur@gmail.com";
 const SENDER = { email: "gemmesendouceur@gmail.com", name: "Gemmes en douceur" };
 
@@ -46,9 +47,9 @@ function stripAccents(str: string): string {
 
 function letterValue(letter: string): number {
   const c = stripAccents(letter).toUpperCase();
-  const code = c.charCodeAt(0) - 65;
+  const code = c.charCodeAt(0) - 65; // A=0
   if (code < 0 || code > 25) return 0;
-  return (code % 9) + 1;
+  return (code % 9) + 1; // A-I:1-9, J-R:1-9, S-Z:1-8
 }
 
 function firstLetterValue(word: string): number {
@@ -60,4 +61,109 @@ function firstLetterValue(word: string): number {
 function reduceToStoneRange(n: number): number {
   let total = n;
   while (total > 33) {
-    total = String(total).split("").reduce((sum, d) => sum + parseInt(d,
+    total = String(total)
+      .split("")
+      .reduce((sum, d) => sum + parseInt(d, 10), 0);
+  }
+  return total;
+}
+
+function calculatePierreOrigine(prenoms: string, nomNaissance: string): number {
+  const prenomTokens = prenoms.trim().split(/\s+/).filter(Boolean);
+  let total = 0;
+  for (const p of prenomTokens) {
+    total += firstLetterValue(p);
+  }
+  total += firstLetterValue(nomNaissance);
+  return reduceToStoneRange(total);
+}
+
+export default async (req: Request, context: Context) => {
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405 });
+  }
+
+  try {
+    const body = await req.json();
+    const { prenoms, nomNaissance, dateNaissance, prenomContact, courriel, consentement } = body;
+
+    if (!prenoms || !nomNaissance || !dateNaissance || !prenomContact || !courriel) {
+      return new Response(JSON.stringify({ error: "Champs manquants" }), { status: 400 });
+    }
+
+    if (!consentement) {
+      return new Response(JSON.stringify({ error: "Le consentement est requis" }), { status: 400 });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(courriel)) {
+      return new Response(JSON.stringify({ error: "Courriel invalide" }), { status: 400 });
+    }
+
+    // Le nom de naissance et la date ne servent qu'au calcul, en mémoire, jamais transmis ni conservés.
+    const stoneId = calculatePierreOrigine(prenoms, nomNaissance);
+    const stone = STONES.find((s) => s.id === stoneId) || STONES[0];
+
+    const apiKey = Netlify.env.get("BREVO_API_KEY");
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: "Configuration serveur manquante" }), { status: 500 });
+    }
+
+    // 1. Créer/mettre à jour le contact dans Brevo + ajouter à la liste (déclenche l'automatisation)
+    const contactRes = await fetch("https://api.brevo.com/v3/contacts", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "api-key": apiKey,
+      },
+      body: JSON.stringify({
+        email: courriel,
+        attributes: {
+          PRENOM: prenomContact,
+          PIERRE: stone.name,
+          PIERRE_DESC: stone.desc,
+        },
+        listIds: [BREVO_LIST_ID],
+        updateEnabled: true,
+      }),
+    });
+
+    if (!contactRes.ok) {
+      const errText = await contactRes.text();
+      console.error("Erreur Brevo contact:", errText);
+      return new Response(JSON.stringify({ error: "Erreur lors de l'enregistrement" }), { status: 502 });
+    }
+
+    // 2. Notifier Edith par courriel (jamais le nom de naissance ni la date de naissance)
+    await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "api-key": apiKey,
+      },
+      body: JSON.stringify({
+        sender: SENDER,
+        to: [{ email: NOTIFY_EMAIL }],
+        subject: `Nouveau lead ADN Minéral : ${prenomContact}`,
+        htmlContent: `
+          <p><strong>Prénom :</strong> ${prenomContact}</p>
+          <p><strong>Courriel :</strong> ${courriel}</p>
+          <p><strong>Pierre calculée :</strong> ${stone.name}</p>
+        `,
+      }),
+
+    });
+
+    return new Response(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (err) {
+    console.error("Erreur:", err);
+    return new Response(JSON.stringify({ error: "Erreur serveur" }), { status: 500 });
+  }
+};
+
+export const config: Config = {
+  path: "/api/submit-pierre",
+};
