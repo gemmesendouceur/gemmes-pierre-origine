@@ -93,6 +93,57 @@
     border: 1px solid #F5BEAC;
   }
 
+  .instructions {
+    background: #FDF8F6;
+    border: 1px solid #F5BEAC;
+    border-radius: 12px;
+    padding: 28px 32px;
+  }
+  .instructions p {
+    font-size: 18px;
+    line-height: 1.7;
+    color: #3a3a3a;
+    margin-bottom: 14px;
+  }
+  .instructions p:last-child { margin-bottom: 0; }
+  .instructions strong { color: #992174; }
+
+  .bloc-titre {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    color: #992174;
+    font-size: 20px;
+    margin-top: 0;
+  }
+  .bloc-titre-2 { margin-top: 32px; }
+  .bloc-note {
+    font-size: 13px;
+    color: #976356;
+    margin-top: 4px;
+    margin-bottom: 16px;
+  }
+
+  .consent {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid #F5BEAC;
+  }
+  .consent-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    color: #3a3a3a;
+    cursor: pointer;
+  }
+  .consent-label input[type="checkbox"] {
+    width: auto;
+    margin-top: 3px;
+    flex-shrink: 0;
+    accent-color: #992174;
+  }
+  .consent-label a { color: #992174; }
+
   label {
     display: block;
     font-size: 14px;
@@ -210,26 +261,54 @@
 </section>
 
 <section>
+  <div class="instructions">
+    <p><strong>Avant de commencer</strong></p>
+    <p>Pour que le calcul de ta pierre d'origine soit juste, ton prénom (ou tes prénoms) et ton nom doivent être écrits <strong>exactement comme ils apparaissent sur ton certificat de naissance émis par le directeur de l'état civil</strong>. Une lettre différente, ou un prénom manquant, change le résultat : ce n'est plus ta vraie vibration de naissance qui est calculée.</p>
+    <p>Prends un instant pour te relire avant d'envoyer, <strong>une fois le formulaire soumis, je ne peux pas corriger une erreur après coup</strong>.</p>
+  </div>
+</section>
+
+<section>
   <div class="form-section">
     <form id="pierre-form">
-      <label for="prenoms">Prénom(s) complet(s) tel qu'inscrit à la naissance</label>
+
+      <p class="bloc-titre">Pour le calcul</p>
+      <p class="bloc-note">Ces informations servent uniquement à calculer ta pierre. Elles ne me sont jamais transmises ni conservées.</p>
+
+      <label for="prenoms">Prénom(s) complet(s), tel qu'inscrit sur ton certificat de naissance</label>
       <input type="text" id="prenoms" name="prenoms" required>
 
-      <label for="nomNaissance">Nom de famille tel qu'inscrit à la naissance</label>
+      <label for="nomNaissance">Nom de famille, tel qu'inscrit sur ton certificat de naissance</label>
       <input type="text" id="nomNaissance" name="nomNaissance" required>
-      <p class="hint">Selon le certificat du directeur de l'état civil</p>
 
       <label for="dateNaissance">Date de naissance</label>
       <input type="date" id="dateNaissance" name="dateNaissance" required>
 
+      <p class="bloc-titre bloc-titre-2">Tes coordonnées</p>
+      <p class="bloc-note">Ces informations sont conservées pour te faire parvenir ton résultat et assurer le suivi. Elles sont distinctes de ton nom de naissance ci-dessus.</p>
+
+      <label for="prenomContact">Prénom</label>
+      <input type="text" id="prenomContact" name="prenomContact" required>
+
+      <label for="nomContact">Nom de famille</label>
+      <input type="text" id="nomContact" name="nomContact" required>
+
       <label for="courriel">Courriel</label>
       <input type="email" id="courriel" name="courriel" required>
+
+      <div class="consent">
+        <label class="consent-label">
+          <input type="checkbox" id="consentement" name="consentement" required>
+          <span>J'accepte de recevoir des communications de la part de Gemmes en douceur. <a href="https://www.gemmesendouceur.com/politique-de-confidentialite" target="_blank" rel="noopener">Politique de confidentialité →</a></span>
+        </label>
+      </div>
 
       <button type="submit" class="btn-submit" id="submit-btn">Révèle ma pierre d'origine</button>
     </form>
     <div class="message" id="message"></div>
   </div>
 </section>
+
 
 <section class="temoignages">
   <h2>Ce que mes client·e·s disent</h2>
@@ -270,7 +349,10 @@
       prenoms: document.getElementById('prenoms').value,
       nomNaissance: document.getElementById('nomNaissance').value,
       dateNaissance: document.getElementById('dateNaissance').value,
+      prenomContact: document.getElementById('prenomContact').value,
+      nomContact: document.getElementById('nomContact').value,
       courriel: document.getElementById('courriel').value,
+      consentement: document.getElementById('consentement').checked,
     };
 
     try {
